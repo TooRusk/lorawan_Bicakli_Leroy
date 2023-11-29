@@ -19,9 +19,10 @@
 #include "lorawan/LoRaWANInterface.h"
 #include "lorawan/system/lorawan_data_structures.h"
 #include "events/EventQueue.h"
+//#include "lorawan_driver.hpp"
 
 // Application helpers
-#include "DummySensor.h"
+#include "TemperatureSensor.hpp"
 #include "trace_helper.h"
 #include "lora_radio_helper.h"
 
@@ -58,7 +59,8 @@ uint8_t rx_buffer[30];
 /**
  * Dummy sensor class object
  */
-DS1820  ds1820(PC_9);
+
+//DS1820  ds1820(PC_9);
 
 /**
 * This event queue is the global event queue for both the
@@ -90,6 +92,8 @@ static lorawan_app_callbacks_t callbacks;
 /**
  * Entry point for application
  */
+DigitalOut _pin(LORA_ANTSW_PWR, 1);
+
 int main(void)
 {
     // setup tracing
@@ -142,8 +146,19 @@ int main(void)
     // make your event queue dispatching events forever
     ev_queue.dispatch_forever();
 
+
+
+
+    // on creer un objet sensor de la classe TemperatureSensor
+
+  
+
+  
+
+
     return 0;
 }
+    I2C i2c(P1_I2C_SDA, P1_I2C_SCL);
 
 /**
  * Sends a message to the Network Server
@@ -153,19 +168,23 @@ static void send_message()
     uint16_t packet_len;
     int16_t retcode;
     int32_t sensor_value;
+    //creer un objet i2c de la classe i2c
+    TemperatureSensor sensorTemp(i2c, 0x48);
+    // if (ds1820.begin()) {
+    //     ds1820.startConversion();
+    //     sensor_value = ds1820.read();
+    //     printf("\r\n Dummy Sensor Value = %d \r\n", sensor_value);
+    //     ds1820.startConversion();
+    // } else {
+    //     printf("\r\n No sensor found \r\n");
+    //     return;
+    // }
+    float temperature = sensorTemp.readTemperature(); // on stock dans temperature la valeur de la temperature
+    //printf("Température : %.2f\n", temperature);// on affiche la valeur de la temperature dans le terminal
+    //payload =  temperature};
 
-    if (ds1820.begin()) {
-        ds1820.startConversion();
-        sensor_value = ds1820.read();
-        printf("\r\n Dummy Sensor Value = %d \r\n", sensor_value);
-        ds1820.startConversion();
-    } else {
-        printf("\r\n No sensor found \r\n");
-        return;
-    }
-
-    packet_len = sprintf((char *) tx_buffer, "Dummy Sensor Value is %d",
-                         sensor_value);
+    packet_len = sprintf((char *) tx_buffer, "{\"Temperature\": %.2f}",
+                         temperature);
 
     retcode = lorawan.send(MBED_CONF_LORA_APP_PORT, tx_buffer, packet_len,
                            MSG_UNCONFIRMED_FLAG);
